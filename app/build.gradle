@@ -1,0 +1,124 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+private static def nowTime() {
+    return new Date().format("yyyyMMdd.HHmmss", TimeZone.getTimeZone("UTC"))
+}
+
+android {
+    compileSdk 31
+
+    defaultConfig {
+        applicationId "hi.mirror"
+        minSdk 22
+        targetSdk 31
+        versionCode 1
+        versionName "1.0"
+
+        flavorDimensions 'dimension'
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags ''
+            }
+        }
+    }
+
+    //签名
+    signingConfigs {
+        projector {
+            storeFile file('../signfiles/himirror.jks')
+            storePassword '12345678901'
+            keyAlias 'himirror'
+            keyPassword '12345678901'
+        }
+        wallcloth {
+            storeFile file('../signfiles/himirror.jks')
+            storePassword '12345678901'
+            keyAlias 'himirror'
+            keyPassword '12345678901'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        applicationVariants.all { variant ->
+            variant.outputs.all { output ->
+                def outputFile = output.outputFile
+                if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                    outputFileName = "${variant.flavorName}-${variant.productFlavors[0].versionName}_${nowTime()}-${variant.buildType.name}.apk"
+                }
+            }
+
+//            // https://blog.csdn.net/smallbabylong/article/details/111276762
+//            // 打包完成后做的一些事,复制apk到指定文件夹,复制mapping等
+//            variant.assemble.doLast {
+//                String oldApkOutDirPath = rootDir.absolutePath + File.separator + "app" + File.separator + variant.flavorName
+//                deleteDir(new File(oldApkOutDirPath))
+//            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    //移除lint检测的error
+    lintOptions {
+        abortOnError false
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.10.2'
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    productFlavors {
+        //投影机
+        projector {
+            versionName "p1.0"
+            applicationId 'hi.mirror.projector'
+            buildConfigField "String", "USB_ACCESS_URL", "\"https://hi.mirror.projector\""
+            signingConfig signingConfigs.projector
+        }
+        //幕布
+        wallcloth {
+            versionName "w1.0"
+            applicationId 'hi.mirror.wallcloth'
+            buildConfigField "String", "USB_ACCESS_URL", "\"https://hi.mirror.wallcloth\""
+            signingConfig signingConfigs.wallcloth
+        }
+    }
+}
+
+dependencies {
+
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.google.android.material:material:1.3.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    testImplementation 'junit:junit:4.+'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+
+    implementation project(':fw')
+    implementation project(':linkwifi')
+}
